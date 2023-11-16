@@ -1,38 +1,42 @@
-#include <stdio.h>
-#include <strings.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<sys/types.h>
+#include<sys/socket.h>
 #include<netinet/in.h>
-#define PORT 5000
-#define MAXLINE 1000
+#include<unistd.h>
+// time
 
-// Driver code
-int main()
-{
-	char buffer[100];
-	char *message = "Hello Client";
-	int listenfd, len;
-	struct sockaddr_in servaddr, cliaddr;
-	bzero(&servaddr, sizeof(servaddr));
+#define MAXLINE 1024
+#define PORT 5035
 
-	// Create a UDP Socket
-	listenfd = socket(AF_INET, SOCK_DGRAM, 0);		
-	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	servaddr.sin_port = htons(PORT);
-	servaddr.sin_family = AF_INET;
+int main(){
 
-	// bind server address to socket descriptor
-	bind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr));
-	
-	//receive the datagram
-	len = sizeof(cliaddr);
-	int n = recvfrom(listenfd, buffer, sizeof(buffer),
-			0, (struct sockaddr*)&cliaddr,&len); //receive message from server
-	buffer[n] = '\0';
-	puts(buffer);
-		
-	// send the response
-	sendto(listenfd, message, MAXLINE, 0,
-		(struct sockaddr*)&cliaddr, sizeof(cliaddr));
+  int socketDescriptor = socket(AF_INET, SOCK_DGRAM, 0);
+  int number;
+  socklen_t addressLength;
+  char message[MAXLINE];
+
+  struct sockaddr_in  serverAddress,clientAddress;
+  serverAddress.sin_family = AF_INET;
+  serverAddress.sin_addr.s_addr=INADDR_ANY;
+  serverAddress.sin_port=htons(PORT);
+
+  bind(socketDescriptor,(struct sockaddr*)&serverAddress,sizeof(serverAddress));
+
+  printf("\nServer Started ...\n");
+
+  while(1){
+    printf("\n");
+    addressLength = sizeof(clientAddress);
+
+    number = recvfrom(socketDescriptor,message,MAXLINE,0,(struct sockaddr*)&clientAddress,&addressLength);
+
+    printf("\n Client's Message: %s ",message);
+
+    if(number<6)
+      perror("send error");
+
+      sendto(socketDescriptor,message,number,0,(struct sockaddr*)&clientAddress,addressLength);
+  }
+  return 0;
 }
