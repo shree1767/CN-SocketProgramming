@@ -54,7 +54,7 @@ while(1)
 bzero(&sendBuffer,sizeof(sendBuffer));
 printf("\nType a message here ...  ");
 /*Read the message from client*/
-fgets(sendBuffer,10000,stdin);
+fgets(sendBuffer,1000,stdin);
 /*Sends the message to client*/
 send(clientSocketDescriptor,sendBuffer,strlen(sendBuffer)+1,0);
 printf("\nMessage sent !\n");
