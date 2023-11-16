@@ -1,60 +1,61 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "stdio.h"
+#include "stdlib.h"
+#include "string.h"
+//headers for socket and related functions
+#include <sys/types.h>
+#include <sys/socket.h>
+//for including structures which will store information needed
+#include <netinet/in.h>
 #include <unistd.h>
-#include <arpa/inet.h>
+//for gethostbyname
+#include "netdb.h"
+#include "arpa/inet.h"
 
-int main() {
-    int clientSocket;
-    struct sockaddr_in serverAddr;
-    char buffer[1024];
+int main()
+{
+int socketDescriptor;
 
-    // Create socket
-    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (clientSocket == -1) {
-        perror("Socket creation failed");
-        exit(EXIT_FAILURE);
-    }
+struct sockaddr_in serverAddress;
+char sendBuffer[1000],recvBuffer[1000];
 
-    memset(&serverAddr, 0, sizeof(serverAddr));
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(12345); // Same port as in the server
-    serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1"); // Server IP address
+pid_t cpid;
 
-    // Connect to server
-    if (connect(clientSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
-        perror("Connect failed");
-        exit(EXIT_FAILURE);
-    }
+bzero(&serverAddress,sizeof(serverAddress));
 
-    printf("Connected to server\n");
+serverAddress.sin_family=AF_INET;
+serverAddress.sin_addr.s_addr=inet_addr("127.0.0.1");
+serverAddress.sin_port=htons(5500);
 
-    while (1) {
-        // Read user input
-        printf("Enter message: ");
-        if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
-            perror("Input error");
-            exit(EXIT_FAILURE);
-        }
-        buffer[strcspn(buffer, "\n")] = '\0'; // Remove newline character
+/*Creating a socket, assigning IP address and port number for that socket*/
+socketDescriptor=socket(AF_INET,SOCK_STREAM,0);
 
-        // Send message to server
-        if (send(clientSocket, buffer, strlen(buffer), 0) == -1) {
-            perror("Send failed");
-            exit(EXIT_FAILURE);
-        }
+/*Connect establishes connection with the server using server IP address*/
+connect(socketDescriptor,(struct sockaddr*)&serverAddress,sizeof(serverAddress));
 
-        // Receive response from server
-        ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
-        if (bytesRead == -1) {
-            perror("Receive failed");
-            exit(EXIT_FAILURE);
-        }
-
-        printf("Received from server: %.*s\n", (int)bytesRead, buffer);
-    }
-
-    close(clientSocket);
-
-    return 0;
+/*Fork is used to create a new process*/
+cpid=fork();
+if(cpid==0)
+{
+while(1)
+{
+bzero(&sendBuffer,sizeof(sendBuffer));
+printf("\nType a message here ...  ");
+/*This function is used to read from server*/
+fgets(sendBuffer,10000,stdin);
+/*Send the message to server*/
+send(socketDescriptor,sendBuffer,strlen(sendBuffer)+1,0);
+printf("\nMessage sent !\n");
+}
+}
+else
+{
+while(1)
+{
+bzero(&recvBuffer,sizeof(recvBuffer));
+/*Receive the message from server*/
+recv(socketDescriptor,recvBuffer,sizeof(recvBuffer),0);
+printf("\nSERVER : %s\n",recvBuffer);
+}
+}
+return 0;
 }
