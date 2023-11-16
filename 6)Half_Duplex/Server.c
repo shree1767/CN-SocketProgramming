@@ -1,61 +1,50 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "stdio.h"
+#include "stdlib.h"
+#include "string.h"
+//headers for socket and related functions
+#include <sys/types.h>
+#include <sys/socket.h>
+//for including structures which will store information needed
+#include <netinet/in.h>
 #include <unistd.h>
-#include <arpa/inet.h>
+//for gethostbyname
+#include "netdb.h"
+#include "arpa/inet.h"
+#define MAX 1000
+#define BACKLOG 5 // how many pending connections queue will hold
+int main()
+{
+    char serverMessage[MAX];
+    char clientMessage[MAX];
+    //create the server socket
+    int  socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
+    
 
-int main() {
-    int serverSocket, newSocket;
-    struct sockaddr_in serverAddr, clientAddr;
-    socklen_t addrSize = sizeof(clientAddr);
-    char buffer[1024];
+    struct sockaddr_in serverAddress;
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_port = htons(9002);
+    serverAddress.sin_addr.s_addr = INADDR_ANY;
 
-    // Create socket
-    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (serverSocket == -1) {
-        perror("Socket creation failed");
-        exit(EXIT_FAILURE);
+    //calling bind function to oir specified IP and port
+    bind(socketDescriptor, (struct sockaddr*)&serverAddress, sizeof(serverAddress));    
+
+    listen(socketDescriptor, BACKLOG);
+    
+    //starting the accepting
+    int clientSocketDescriptor = accept(socketDescriptor, NULL, NULL);
+
+    while (1)
+    {
+        printf("\ntext message here .. :");
+        scanf("%s", serverMessage);
+        send(clientSocketDescriptor, serverMessage, sizeof(serverMessage) , 0);
+        //recieve the data from the server
+        recv(clientSocketDescriptor, &clientMessage, sizeof(clientMessage), 0) ;
+        //recieved data from the server successfully then printing the data obtained from the server
+        printf("\nCLIENT: %s", clientMessage);
+       
     }
-
-    memset(&serverAddr, 0, sizeof(serverAddr));
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr = INADDR_ANY;
-    serverAddr.sin_port = htons(12345); // Choose a port
-
-    // Bind
-    if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
-        perror("Bind failed");
-        exit(EXIT_FAILURE);
-    }
-
-    // Listen
-    if (listen(serverSocket, 5) == -1) {
-        perror("Listen failed");
-        exit(EXIT_FAILURE);
-    }
-
-    printf("Server is listening...\n");
-
-    // Accept connection
-    newSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &addrSize);
-    if (newSocket == -1) {
-        perror("Accept failed");
-        exit(EXIT_FAILURE);
-    }
-
-    printf("Connection established with client\n");
-
-    // Receive message from client
-    ssize_t bytesRead = recv(newSocket, buffer, sizeof(buffer), 0);
-    if (bytesRead == -1) {
-        perror("Receive failed");
-        exit(EXIT_FAILURE);
-    }
-
-    printf("Received from client: %.*s\n", (int)bytesRead, buffer);
-
-    close(newSocket);
-    close(serverSocket);
-
-    return 0;
+        //close the socket
+        close(socketDescriptor);
+        return 0;
 }
